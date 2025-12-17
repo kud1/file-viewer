@@ -162,9 +162,7 @@ file-viewer/
 
 ## 文档
 
-- [用户指南](USER_GUIDE.md)
-- [更新日志](CHANGELOG.md)
-- [设计说明](DESIGN_UPDATE.md)
+当前仓库版本未包含额外设计/指南/变更日志类文档（已在 `.gitignore` 中忽略）。
 
 ## 隐私与安全
 
@@ -180,4 +178,3 @@ file-viewer/
 ## 许可证
 
 MIT License
-
