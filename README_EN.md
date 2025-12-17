@@ -67,9 +67,7 @@ SELECT column_name, COUNT(*) FROM table_name GROUP BY column_name;
 
 ## Docs
 
-- [User Guide (CN)](USER_GUIDE.md)
-- [Changelog](CHANGELOG.md)
-- [Design Notes](DESIGN_UPDATE.md)
+This repo does not include extra design/guide/changelog docs in the current version (ignored via `.gitignore`).
 
 ## Privacy & Security
 
@@ -80,5 +78,3 @@ SELECT column_name, COUNT(*) FROM table_name GROUP BY column_name;
 ## License
 
 MIT License
-
-
