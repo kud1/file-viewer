@@ -1,0 +1,26 @@
+### macOS
+.DS_Store
+
+### Python
+__pycache__/
+*.py[cod]
+*.pyd
+.Python
+
+### Virtual environments
+.venv/
+venv/
+ENV/
+
+### IDEs
+.idea/
+.vscode/
+
+### Misc
+*.log
+
+DESIGN_UPDATE.md
+USER_GUIDE.md
+UPDATE_SUMMARY.md
+开发计划.md
+CHANGELOG.md
