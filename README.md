@@ -25,7 +25,7 @@ FViewer 采用现代化的设计语言，带来优雅而高效的用户体验：
 
 ## 截图
 
-![FViewer UI](file/sample.png)
+（截图待补充：你可以在仓库创建后上传到 `file/` 目录，再在 README 中引用）
 
 ## 系统要求
 

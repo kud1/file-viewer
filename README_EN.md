@@ -14,7 +14,7 @@ FViewer is a lightweight desktop data viewer and query tool built on **DuckDB** 
 
 ## Screenshot
 
-![FViewer UI](file/sample.png)
+(Screenshot TBD: you can upload images to `file/` later and reference them here.)
 
 ## Requirements
 
