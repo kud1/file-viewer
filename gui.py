@@ -10,6 +10,7 @@ import csv
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import threading
+import sys
 
 from file_manager import FileManager
 from db_manager import DatabaseManager
@@ -31,6 +32,9 @@ class FileViewerApp:
         # 设置最小窗口大小
         self.root.minsize(1200, 700)
         
+        # macOS 风格字体
+        self.font_family = ".AppleSystemUIFont" if sys.platform == "darwin" else "Segoe UI"
+
         # 初始化数据库和文件管理器
         self.db_manager = DatabaseManager()
         self.file_manager = FileManager(self.db_manager.get_connection())
@@ -63,37 +67,47 @@ class FileViewerApp:
     
     def _create_widgets(self):
         """创建界面组件"""
-        # 主容器 - 现代化背景渐变效果
-        main_container = ctk.CTkFrame(self.root, fg_color="#F8F9FA")
+        # 主容器 - macOS 26 风格：纯净背景
+        main_container = ctk.CTkFrame(self.root, fg_color="#FFFFFF")
         main_container.pack(fill="both", expand=True)
         
-        # 左侧：优雅的侧边栏 (参考图片风格)
+        # 左侧：侧边栏 (macOS Sidebar Style)
+        # 使用淡灰色背景，模拟磨砂玻璃感
         left_panel = ctk.CTkFrame(
             main_container, 
-            width=280, 
-            fg_color="#4CAF50",  # 优雅的绿色主题
-            corner_radius=0
+            width=260,
+            fg_color="#F5F5F7",
+            corner_radius=0,
+            border_width=0,
+            # border_color="#E5E5E5" # 右侧边框由分割线处理
         )
         left_panel.pack(side="left", fill="both", padx=0, pady=0)
         left_panel.pack_propagate(False)
         
+        # 侧边栏右侧分割线
+        separator = ctk.CTkFrame(left_panel, width=1, fg_color="#E5E5E5")
+        separator.pack(side="right", fill="y")
+
+        # Sidebar 内容容器
+        sidebar_content = ctk.CTkFrame(left_panel, fg_color="transparent")
+        sidebar_content.pack(fill="both", expand=True, padx=16, pady=20)
+
         # Logo 和标题区域
-        header_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
-        header_frame.pack(fill="x", padx=20, pady=(30, 20))
+        header_frame = ctk.CTkFrame(sidebar_content, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(10, 20))
         
         # 应用图标和名称
         app_title_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
-        app_title_frame.pack(fill="x")
+        app_title_frame.pack(fill="x", anchor="w")
         
-        # 加载并显示 logo 图标
+        # 加载 logo
         try:
             from PIL import Image
             logo_path = Path(__file__).parent / "file/logo.tiff"
             if logo_path.exists():
                 logo_image = Image.open(str(logo_path))
-                # 调整图片大小为 32x32
-                logo_image = logo_image.resize((32, 32), Image.Resampling.LANCZOS)
-                logo_ctk = ctk.CTkImage(light_image=logo_image, dark_image=logo_image, size=(32, 32))
+                logo_image = logo_image.resize((28, 28), Image.Resampling.LANCZOS)
+                logo_ctk = ctk.CTkImage(light_image=logo_image, dark_image=logo_image, size=(28, 28))
                 
                 ctk.CTkLabel(
                     app_title_frame,
@@ -101,281 +115,290 @@ class FileViewerApp:
                     text=""
                 ).pack(side="left", padx=(0, 10))
             else:
-                # 如果 logo 不存在，使用 emoji 作为备用
                 ctk.CTkLabel(
                     app_title_frame,
                     text="📊",
-                    font=ctk.CTkFont(size=32),
+                    font=ctk.CTkFont(size=24),
                 ).pack(side="left", padx=(0, 10))
         except Exception as e:
-            print(f"无法加载 logo: {e}")
-            # 使用 emoji 作为备用
             ctk.CTkLabel(
                 app_title_frame,
                 text="📊",
-                font=ctk.CTkFont(size=32),
+                font=ctk.CTkFont(size=24),
             ).pack(side="left", padx=(0, 10))
         
         ctk.CTkLabel(
             app_title_frame,
             text="FViewer",
-            font=ctk.CTkFont(size=24, weight="bold"),
-            text_color="white"
+            font=ctk.CTkFont(family=self.font_family, size=20, weight="bold"),
+            text_color="#1D1D1F"
         ).pack(side="left")
         
-        # 文件列表标题
-        file_header = ctk.CTkFrame(left_panel, fg_color="transparent")
-        file_header.pack(fill="x", padx=20, pady=(20, 15))
+        # 添加文件按钮容器 (macOS 风格按钮，类似 Finder 工具栏)
+        action_frame = ctk.CTkFrame(sidebar_content, fg_color="transparent")
+        action_frame.pack(fill="x", pady=(0, 20))
         
-        ctk.CTkLabel(
-            file_header, 
-            text="LIBRARY", 
-            font=ctk.CTkFont(size=11, weight="bold"), 
-            text_color="#E8E8E8",  # 半透明白色的实际效果
-            anchor="w"
-        ).pack(fill="x")
+        # 主要操作按钮样式
+        btn_font = ctk.CTkFont(family=self.font_family, size=13, weight="normal")
         
-        # 添加文件按钮容器
-        button_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
-        button_frame.pack(fill="x", padx=15, pady=(0, 15))
-        
-        # 添加文件按钮 - 现代风格
+        # Add File
         ctk.CTkButton(
-            button_frame, 
-            text="📄 Add File", 
-            width=120,
-            height=36,
+            action_frame,
+            text="Add File",
+            width=100,
+            height=32,
             command=self._load_file,
-            font=ctk.CTkFont(size=13, weight="bold"),
-            fg_color="#66BB6B",  # 半透明白色在绿色背景上的效果
-            text_color="white",
-            hover_color="#80C784",  # 更亮的半透明效果
-            corner_radius=8
-        ).pack(side="left", padx=(0, 8), expand=True, fill="x")
+            font=btn_font,
+            fg_color="#FFFFFF",
+            text_color="#1D1D1F",
+            hover_color="#F0F0F0",
+            border_width=1,
+            border_color="#D1D1D1",
+            corner_radius=8,
+            image=None # 可以添加图标
+        ).pack(side="left", expand=True, fill="x", padx=(0, 6))
         
-        # 添加文件夹按钮
+        # Add Folder
         ctk.CTkButton(
-            button_frame, 
-            text="📁 Add Folder", 
-            width=120, 
-            height=36,
+            action_frame,
+            text="Add Folder",
+            width=100,
+            height=32,
             command=self._load_directory,
-            font=ctk.CTkFont(size=13, weight="bold"),
-            fg_color="#66BB6B",  # 半透明白色在绿色背景上的效果
-            text_color="white",
-            hover_color="#80C784",  # 更亮的半透明效果
+            font=btn_font,
+            fg_color="#FFFFFF",
+            text_color="#1D1D1F",
+            hover_color="#F0F0F0",
+            border_width=1,
+            border_color="#D1D1D1",
             corner_radius=8
         ).pack(side="left", expand=True, fill="x")
         
+        # Section Header: LIBRARY
+        ctk.CTkLabel(
+            sidebar_content,
+            text="LIBRARY",
+            font=ctk.CTkFont(family=self.font_family, size=11, weight="bold"),
+            text_color="#86868B",
+            anchor="w"
+        ).pack(fill="x", pady=(10, 8))
+
         # 文件列表容器
         self.file_listbox_frame = ctk.CTkScrollableFrame(
-            left_panel, 
+            sidebar_content,
             fg_color="transparent",
-            scrollbar_button_color="#80C784"  # 半透明白色在绿色背景上
+            scrollbar_button_color="#E5E5E5",
+            scrollbar_button_hover_color="#D1D1D1"
         )
-        self.file_listbox_frame.pack(fill="both", expand=True, padx=10, pady=0)
+        self.file_listbox_frame.pack(fill="both", expand=True)
         
         self.file_buttons: List[Dict] = []
         
         # 右侧：主内容区域
         right_container = ctk.CTkFrame(main_container, fg_color="transparent")
-        right_container.pack(side="right", fill="both", expand=True, padx=25, pady=25)
+        right_container.pack(side="right", fill="both", expand=True, padx=40, pady=30)
         
-        # 使用 Grid 布局管理右侧区域，确保布局稳定
         right_container.grid_rowconfigure(1, weight=1)
         right_container.grid_columnconfigure(0, weight=1)
         
         # 顶部标题栏
-        top_bar = ctk.CTkFrame(right_container, fg_color="transparent", height=60)
+        top_bar = ctk.CTkFrame(right_container, fg_color="transparent", height=50)
         top_bar.grid(row=0, column=0, sticky="ew", pady=(0, 20))
         top_bar.pack_propagate(False)
         
         ctk.CTkLabel(
             top_bar,
-            text="Data Preview",
-            font=ctk.CTkFont(size=28, weight="bold"),
-            text_color="#1F2937",
+            text="Data Explorer",
+            font=ctk.CTkFont(family=self.font_family, size=28, weight="bold"),
+            text_color="#1D1D1F",
             anchor="w"
         ).pack(side="left", fill="y")
         
-        # 文件预览区域 - 卡片风格
-        preview_card = ctk.CTkFrame(
-            right_container, 
-            fg_color="white",
-            corner_radius=16,
-            border_width=1,
-            border_color="#E5E7EB"
-        )
-        preview_card.grid(row=1, column=0, sticky="nsew", pady=(0, 20))
+        # Data Preview Card
+        # 移除显式的边框，使用更干净的布局
+        preview_container = ctk.CTkFrame(right_container, fg_color="transparent")
+        preview_container.grid(row=1, column=0, sticky="nsew", pady=(0, 20))
         
-        # 卡片内容容器
-        preview_content = ctk.CTkFrame(preview_card, fg_color="transparent")
-        preview_content.pack(fill="both", expand=True, padx=25, pady=20)
+        # 统计信息栏
+        stats_bar = ctk.CTkFrame(preview_container, fg_color="transparent", height=30)
+        stats_bar.pack(fill="x", pady=(0, 10))
         
-        # 统计信息
-        preview_header = ctk.CTkFrame(preview_content, fg_color="transparent")
-        preview_header.pack(fill="x", pady=(0, 15))
-        
-        # 统计信息标签
         self.preview_stats_label = ctk.CTkLabel(
-            preview_header,
+            stats_bar,
             text="",
-            font=ctk.CTkFont(size=13),
-            text_color="#6B7280",
+            font=ctk.CTkFont(family=self.font_family, size=13),
+            text_color="#86868B",
             anchor="w"
         )
-        self.preview_stats_label.pack(side="left", fill="x")
+        self.preview_stats_label.pack(side="left")
         
-        # 表格容器 - 圆角边框
-        table_container = ctk.CTkFrame(
-            preview_content, 
-            fg_color="#F9FAFB",
-            corner_radius=12,
+        # 表格容器
+        table_border_frame = ctk.CTkFrame(
+            preview_container,
+            fg_color="transparent",
             border_width=1,
-            border_color="#E5E7EB"
+            border_color="#E5E5E5",
+            corner_radius=12
         )
-        table_container.pack(fill="both", expand=True)
+        table_border_frame.pack(fill="both", expand=True)
+
+        # 内部 Frame 用于裁剪圆角
+        table_inner_frame = ctk.CTkFrame(table_border_frame, fg_color="transparent", corner_radius=12)
+        table_inner_frame.pack(fill="both", expand=True, padx=1, pady=1)
         
-        # 表格框架
-        tree_frame = ctk.CTkFrame(table_container, fg_color="transparent")
-        tree_frame.pack(fill="both", expand=True, padx=2, pady=2)
-        
-        # 滚动条 - 现代风格
-        scrollbar_y = ctk.CTkScrollbar(tree_frame, orientation="vertical")
+        # 滚动条
+        scrollbar_y = ctk.CTkScrollbar(table_inner_frame, orientation="vertical", button_color="#D1D1D1", button_hover_color="#A0A0A0")
         scrollbar_y.pack(side="right", fill="y")
         
-        scrollbar_x = ctk.CTkScrollbar(tree_frame, orientation="horizontal")
+        scrollbar_x = ctk.CTkScrollbar(table_inner_frame, orientation="horizontal", button_color="#D1D1D1", button_hover_color="#A0A0A0")
         scrollbar_x.pack(side="bottom", fill="x")
         
-        # Treeview表格
+        # Treeview
         self.preview_tree = ttk.Treeview(
-            tree_frame,
+            table_inner_frame,
             yscrollcommand=scrollbar_y.set,
             xscrollcommand=scrollbar_x.set,
-            show="headings"
+            show="headings",
+            style="Modern.Treeview"
         )
         self.preview_tree.pack(side="left", fill="both", expand=True)
         
         scrollbar_y.configure(command=self.preview_tree.yview)
         scrollbar_x.configure(command=self.preview_tree.xview)
         
-        # 配置表格样式 - 优雅的现代风格
-        style = ttk.Style()
-        style.theme_use("clam")
+        # 配置 Treeview 样式
+        self._setup_treeview_style()
         
-        # 表格主体样式
-        style.configure("Treeview", 
-                      background="#FFFFFF",
-                      foreground="#374151",
-                      fieldbackground="#FFFFFF",
-                      borderwidth=1,
-                      relief="solid",
-                      rowheight=38,
-                      font=('SF Pro', 12))
-        
-        # 表头样式 - 更突出
-        style.configure("Treeview.Heading",
-                       background="#F3F4F6",
-                       foreground="#1F2937",
-                       borderwidth=1,
-                       relief="solid",
-                       font=('SF Pro', 11, 'bold'),
-                       padding=10)
-        
-        style.map("Treeview.Heading",
-                 background=[('active', '#E5E7EB')])
-        
-        # 选中行样式 - 优雅的蓝色
-        style.map("Treeview",
-                 background=[("selected", "#4CAF50")],
-                 foreground=[("selected", "white")])
-        
-        self.preview_tree.configure(style="Treeview")
-        
-        # SQL 查询区域 - 卡片风格
-        sql_card = ctk.CTkFrame(
+        # SQL 查询区域
+        sql_section = ctk.CTkFrame(
             right_container, 
-            fg_color="white",
-            corner_radius=16,
-            border_width=1,
-            border_color="#E5E7EB"
+            fg_color="#F5F5F7", # 浅灰色背景区别于白色主背景
+            corner_radius=16
         )
-        sql_card.grid(row=2, column=0, sticky="ew")
+        sql_section.grid(row=2, column=0, sticky="ew")
         
-        sql_content = ctk.CTkFrame(sql_card, fg_color="transparent")
-        sql_content.pack(fill="both", padx=25, pady=20)
+        sql_content = ctk.CTkFrame(sql_section, fg_color="transparent")
+        sql_content.pack(fill="both", padx=24, pady=20)
         
-        # 查询标题
+        # SQL Header
         sql_header = ctk.CTkFrame(sql_content, fg_color="transparent")
         sql_header.pack(fill="x", pady=(0, 12))
         
         ctk.CTkLabel(
             sql_header, 
-            text="⚡ SQL Query", 
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color="#1F2937"
+            text="SQL Query",
+            font=ctk.CTkFont(family=self.font_family, size=16, weight="bold"),
+            text_color="#1D1D1F"
         ).pack(side="left")
         
-        # SQL 输入框 - 现代化样式
+        # SQL Input
         self.sql_text = ctk.CTkTextbox(
             sql_content, 
-            height=90,
-            font=ctk.CTkFont(family="Monaco", size=13),
-            fg_color="#F9FAFB",
-            border_color="#E5E7EB",
+            height=80,
+            font=ctk.CTkFont(family="Menlo" if sys.platform == "darwin" else "Consolas", size=13),
+            fg_color="#FFFFFF",
+            border_color="#E5E5E5",
             border_width=1,
             corner_radius=10,
-            text_color="#1F2937"
+            text_color="#1D1D1F"
         )
-        self.sql_text.pack(fill="x", pady=(0, 15))
+        self.sql_text.pack(fill="x", pady=(0, 16))
         
-        # 按钮容器
-        button_frame = ctk.CTkFrame(sql_content, fg_color="transparent")
-        button_frame.pack(fill="x")
+        # Actions
+        actions_row = ctk.CTkFrame(sql_content, fg_color="transparent")
+        actions_row.pack(fill="x")
         
-        # 运行查询按钮 - 主要动作
+        # Run Button (Green Gradient Style - Simulated with solid color)
+        # 使用更加鲜艳的绿色 #28C840 (macOS System Green)
         ctk.CTkButton(
-            button_frame, 
-            text="▶ Run Query", 
+            actions_row,
+            text="Run Query",
             command=self._execute_query,
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=40,
-            fg_color="#4CAF50", 
-            hover_color="#45A049",
-            corner_radius=10,
+            font=ctk.CTkFont(family=self.font_family, size=13, weight="bold"),
+            height=36,
+            width=120,
+            fg_color="#28C840",
+            hover_color="#24B33A",
+            corner_radius=18, # Pill shape
             text_color="white"
         ).pack(side="left", padx=(0, 12))
         
-        # 导出 JSON 按钮
+        # Export Buttons
+        export_btn_color = "#FFFFFF"
+        export_text_color = "#1D1D1F"
+        export_hover_color = "#F0F0F0"
+
         ctk.CTkButton(
-            button_frame, 
-            text="📄 Export JSON", 
+            actions_row,
+            text="Export JSON",
             command=lambda: self._export_result("json"),
-            font=ctk.CTkFont(size=13),
-            height=40,
-            fg_color="#F9FAFB",
-            text_color="#374151",
-            hover_color="#E5E7EB",
+            font=ctk.CTkFont(family=self.font_family, size=13),
+            height=36,
+            fg_color=export_btn_color,
+            text_color=export_text_color,
+            hover_color=export_hover_color,
             border_width=1,
-            border_color="#D1D5DB",
-            corner_radius=10
-        ).pack(side="left", padx=(0, 12))
+            border_color="#D1D1D1",
+            corner_radius=18
+        ).pack(side="left", padx=(0, 8))
         
-        # 导出 CSV 按钮
         ctk.CTkButton(
-            button_frame, 
-            text="📊 Export CSV", 
+            actions_row,
+            text="Export CSV",
             command=lambda: self._export_result("csv"),
-            font=ctk.CTkFont(size=13),
-            height=40,
-            fg_color="#F9FAFB",
-            text_color="#374151",
-            hover_color="#E5E7EB",
+            font=ctk.CTkFont(family=self.font_family, size=13),
+            height=36,
+            fg_color=export_btn_color,
+            text_color=export_text_color,
+            hover_color=export_hover_color,
             border_width=1,
-            border_color="#D1D5DB",
-            corner_radius=10
+            border_color="#D1D1D1",
+            corner_radius=18
         ).pack(side="left")
-    
+
+    def _setup_treeview_style(self):
+        """配置 Treeview 的现代化样式"""
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        # 字体
+        header_font = (self.font_family, 12, 'bold')
+        body_font = (self.font_family, 12)
+
+        # 颜色
+        bg_color = "#FFFFFF"
+        text_color = "#1D1D1F"
+        header_bg = "#F5F5F7"
+        header_text = "#1D1D1F"
+        selected_bg = "#28C840" # macOS Green
+        border_color = "#E5E5E5"
+
+        # Treeview 主体
+        style.configure("Modern.Treeview",
+                      background=bg_color,
+                      foreground=text_color,
+                      fieldbackground=bg_color,
+                      borderwidth=0,
+                      rowheight=40,
+                      font=body_font)
+
+        # Treeview 表头
+        style.configure("Modern.Treeview.Heading",
+                       background=header_bg,
+                       foreground=header_text,
+                       borderwidth=1,
+                       relief="flat",
+                       font=header_font)
+
+        # 表头悬停效果
+        style.map("Modern.Treeview.Heading",
+                 background=[('active', '#EAEAEA')])
+
+        # 选中行样式
+        style.map("Modern.Treeview",
+                 background=[("selected", selected_bg)],
+                 foreground=[("selected", "white")])
+
     def _load_file(self):
         """加载单个文件"""
         file_path = filedialog.askopenfilename(
@@ -460,8 +483,6 @@ class FileViewerApp:
         
         if table_name:
             self._update_file_list()
-            # messagebox.showinfo("成功", f"文件加载成功！\n别名: {alias}\n表名: {table_name}")
-            
             # 自动选中并预览
             self._select_file(file_path)
         else:
@@ -475,8 +496,6 @@ class FileViewerApp:
             if table_name:
                 # 在主线程中更新界面
                 self.root.after(0, lambda: self._update_file_list())
-                success_msg = f"文件夹加载成功！\n别名: {alias}\n表名: {table_name}"
-                # self.root.after(0, lambda msg=success_msg: messagebox.showinfo("成功", msg))
                 # 自动选中并预览
                 self.root.after(0, lambda fp=dir_path: self._select_file(fp))
             else:
@@ -489,9 +508,7 @@ class FileViewerApp:
         except Exception as e:
             # 其他错误
             error_str = str(e)
-            # 过滤掉技术性的错误信息，提供更友好的提示
             if "window" in error_str.lower() and "deleted" in error_str.lower():
-                # 忽略窗口相关的错误（这些通常是 Tkinter 的内部错误，不影响功能）
                 return
             elif "permission" in error_str.lower() or "access" in error_str.lower():
                 error_msg = f"无法访问文件夹 '{Path(dir_path).name}'。\n\n请检查：\n- 文件夹是否存在\n- 是否有读取权限"
@@ -518,78 +535,80 @@ class FileViewerApp:
             alias = self.file_manager.get_file_alias(file_path)
             # 获取原文件名或文件夹名
             path_obj = Path(file_path)
-            if path_obj.is_dir():
-                original_name = path_obj.name
-            else:
-                original_name = path_obj.name
+            original_name = path_obj.name
             
-            # 显示格式：别名(文件名)，处理文件名过长
-            max_name_length = 30  # 最大文件名显示长度
-            if len(original_name) > max_name_length:
-                display_name = original_name[:max_name_length-3] + "..."
+            # 显示格式：别名
+            max_name_length = 20
+            if len(alias) > max_name_length:
+                display_name = alias[:max_name_length-3] + "..."
             else:
-                display_name = original_name
-            display_text = f"{alias}({display_name})"
+                display_name = alias
             
-            # 创建列表项容器 - 现代风格
+            # 创建列表项容器
             item_frame = ctk.CTkFrame(
                 self.file_listbox_frame,
-                fg_color="transparent"
+                fg_color="transparent",
+                height=40
             )
-            item_frame.pack(fill="x", pady=3, padx=5)
+            item_frame.pack(fill="x", pady=2, padx=4)
             
-            # 删除按钮 - 圆形图标（放在最左侧）
+            # 选中状态背景
+            is_selected = (file_path == self.current_file)
+            bg_color = "#E5E5E5" if is_selected else "transparent"
+            hover_color = "#EAEAEA"
+
+            # 整个 item_frame 模拟成一个按钮的效果比较难，这里用 Button 填充
+
+            # 容器内部布局
+            # 删除按钮 (悬停时显示会更好，但这里简化为一直显示但颜色淡)
             delete_btn = ctk.CTkButton(
                 item_frame,
-                text="X",
+                text="×",
                 width=24,
-                height=32,
+                height=24,
                 command=lambda fp=file_path: self._delete_file(fp),
-                font=ctk.CTkFont(size=12, weight="bold"),
-                fg_color="#F44336",  # 红色
-                hover_color="#C62828",  # 深红色
-                text_color="white",
-                corner_radius=8
+                font=ctk.CTkFont(size=16),
+                fg_color="transparent",
+                hover_color="#E5E5E5",
+                text_color="#86868B",
+                corner_radius=12
             )
-            delete_btn.pack(side="left", padx=(0, 5))
+            delete_btn.pack(side="right", padx=(2, 4))
+
+            # 文件按钮
+            icon = "📁" if path_obj.is_dir() else "📄"
             
-            # 文件按钮 - 优雅的侧边栏风格
             btn = ctk.CTkButton(
                 item_frame,
-                text=f"  📄 {display_text}",
+                text=f"{icon} {display_name}",
                 anchor="w",
-                height=42,
+                height=36,
                 command=lambda fp=file_path: self._select_file(fp),
-                font=ctk.CTkFont(size=13),
-                fg_color="#73C177" if file_path == self.current_file else "transparent",
-                text_color="white",
-                hover_color="#5CB560",  # 悬停时的半透明效果
-                corner_radius=8
+                font=ctk.CTkFont(family=self.font_family, size=13),
+                fg_color=bg_color,
+                text_color="#1D1D1F",
+                hover_color=hover_color,
+                corner_radius=6
             )
             btn._file_path = file_path  
-            btn._full_text = f"{alias}({original_name})"
             btn.pack(side="left", fill="both", expand=True)
             
             self.file_buttons.append({'frame': item_frame, 'select_btn': btn, 'delete_btn': delete_btn})
-            
-            # 设置选中状态样式
-            if file_path == self.current_file:
-                btn.configure(fg_color="#73C177")
-            else:
-                btn.configure(fg_color="transparent")
     
     def _select_file(self, file_path: str):
         """选中文件并显示预览"""
         self.current_file = file_path
         
-        # 更新按钮状态 - 现代风格
+        # 更新按钮状态
         for item in self.file_buttons:
             if isinstance(item, dict):
                 btn = item['select_btn']
                 if hasattr(btn, '_file_path') and btn._file_path == file_path:
-                    btn.configure(fg_color="#73C177")  # 选中状态
+                    btn.configure(fg_color="#E5E5E5")  # 选中状态 - 灰色高亮
+                    btn.configure(text_color="#1D1D1F")
                 elif hasattr(btn, '_file_path'):
                     btn.configure(fg_color="transparent")
+                    btn.configure(text_color="#1D1D1F")
         
         # 显示预览
         self._show_preview(file_path)
@@ -602,16 +621,11 @@ class FileViewerApp:
                 # 如果删除的是当前选中的文件，清除预览
                 if self.current_file == file_path:
                     self.current_file = None
-                    # 清空预览
-                    for item in self.preview_tree.get_children():
-                        self.preview_tree.delete(item)
-                    self.preview_tree["columns"] = []
-                    self.preview_stats_label.configure(text="")
-                    self.current_display_data = None
+                    self._clear_preview()
                 
                 # 更新文件列表
                 self._update_file_list()
-                messagebox.showinfo("成功", "文件已删除")
+                # messagebox.showinfo("成功", "文件已删除")
             else:
                 messagebox.showerror("错误", "删除文件失败")
     
@@ -628,15 +642,11 @@ class FileViewerApp:
     
     def _show_preview(self, file_path: str, data: Optional[List[Dict[str, Any]]] = None, max_rows: int = 10):
         """显示文件预览（表格样式）"""
-        # 如果提供了数据，使用提供的数据；否则从文件管理器获取
         if data is None:
             preview_data = self.file_manager.get_file_preview(file_path, max_rows=max_rows)
-            # 保存完整预览数据（用于导出）
             self.current_display_data = preview_data
         else:
-            # 保存完整的查询结果数据（用于导出）
             self.current_display_data = data
-            # 只显示前max_rows行
             preview_data = data[:max_rows] if data else []
         
         # 清空表格
@@ -659,20 +669,18 @@ class FileViewerApp:
         self.preview_tree["columns"] = headers
         for header in headers:
             self.preview_tree.heading(header, text=header)
-            # 设置列宽，并确保列之间有分隔
             self.preview_tree.column(header, width=150, anchor="w", stretch=False, minwidth=100)
         
-        # 插入数据行，处理整型字段的显示
+        # 插入数据行
         for row in preview_data:
             formatted_values = []
             for h in headers:
                 value = row.get(h, "")
-                # 如果是浮点数且是整数（如 123.0），转换为整数显示
                 if isinstance(value, float) and value.is_integer():
                     formatted_value = str(int(value))
                 else:
                     formatted_value = str(value)
-                formatted_values.append(formatted_value[:100])  # 限制每列显示长度
+                formatted_values.append(formatted_value[:100])
             self.preview_tree.insert("", "end", values=formatted_values)
         
         # 获取表信息并显示统计
@@ -687,7 +695,7 @@ class FileViewerApp:
                 total_rows = info['row_count']
         
         # 更新统计信息标签
-        stats_text = f"总行数: {total_rows} | 总列数: {total_cols} | 当前显示: {display_rows} 行"
+        stats_text = f"Total: {total_rows} rows, {total_cols} cols | Showing: {display_rows}"
         self.preview_stats_label.configure(text=stats_text)
     
     def _execute_query(self):
@@ -702,31 +710,35 @@ class FileViewerApp:
         result = self.db_manager.execute_query_dict(sql)
         
         if result is None:
-            # 查询失败时清空预览内容
             self._clear_preview()
-            # 获取更详细的错误信息
             error_msg = self.db_manager.get_last_error()
             if error_msg:
-                messagebox.showerror("查询失败", f"SQL 查询执行失败：\n\n{error_msg}\n\n请检查 SQL 语句是否正确，或确认表名是否存在。")
+                messagebox.showerror("查询失败", f"SQL 查询执行失败：\n\n{error_msg}")
             else:
-                messagebox.showerror("查询失败", "SQL 查询执行失败，请检查 SQL 语句是否正确。")
+                messagebox.showerror("查询失败", "SQL 查询执行失败")
             return
         
-        # 查询结果直接显示在预览区域（替代文件预览）
         if self.current_file:
-            # 显示查询结果，最多显示10行（但保存完整结果用于导出）
             self._show_preview(self.current_file, data=result, max_rows=10)
             
-            # 更新统计信息（显示查询结果的总行数）
             total_rows = len(result)
             if result:
                 total_cols = len(result[0].keys())
                 display_rows = min(10, total_rows)
-                stats_text = f"查询结果 - 总行数: {total_rows} | 总列数: {total_cols} | 当前显示: {display_rows} 行"
+                stats_text = f"Result: {total_rows} rows, {total_cols} cols | Showing: {display_rows}"
                 self.preview_stats_label.configure(text=stats_text)
         else:
-            messagebox.showwarning("警告", "请先加载文件")
-    
+            # 如果没有选中文件，但执行了查询（比如 select 1），也应该显示
+            # 这里简单处理，如果有结果就显示
+            if result:
+                # 临时造一个 dummy file path
+                self._show_preview("query_result", data=result, max_rows=10)
+                total_rows = len(result)
+                total_cols = len(result[0].keys())
+                display_rows = min(10, total_rows)
+                stats_text = f"Result: {total_rows} rows, {total_cols} cols | Showing: {display_rows}"
+                self.preview_stats_label.configure(text=stats_text)
+
     def _export_result(self, format_type: str):
         """导出当前显示的数据（预览或查询结果）"""
         if self.current_display_data is None or not self.current_display_data:
@@ -788,4 +800,3 @@ class FileViewerApp:
     def run(self):
         """运行应用"""
         self.root.mainloop()
-
